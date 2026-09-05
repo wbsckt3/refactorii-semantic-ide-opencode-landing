@@ -1,0 +1,910 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <meta name="description" content="Agentic IDE SaaS: IDE en el navegador con agente, Skills, MCP y LSP aplicados a tu código. Escribes la tarea, revisas el diff y lo aplicas a tu proyecto." />
+  <meta name="theme-color" content="#0b1220" />
+  <title>Agent Factory — Agentic IDE SaaS</title>
+  <link rel="icon" href="assets/logo-p2l.png" type="image/png" />
+  <style>
+    :root {
+      --bg: #0b1220;
+      --panel: #0f172a;
+      --line: #1e293b;
+      --line2: #334155;
+      --text: #e2e8f0;
+      --muted: #94a3b8;
+      --cyan: #22d3ee;
+      --cyan2: #67e8f9;
+      --btn: #0e7490;
+      --header-h: 64px;
+    }
+    *, *::before, *::after { box-sizing: border-box; }
+    html { scroll-behavior: smooth; touch-action: manipulation; }
+    body {
+      margin: 0;
+      font-family: ui-sans-serif, system-ui, sans-serif;
+      color: var(--text);
+      background: var(--bg);
+      line-height: 1.5;
+      -webkit-font-smoothing: antialiased;
+      touch-action: manipulation;
+    }
+    img { max-width: 100%; display: block; }
+    a { color: inherit; text-decoration: none; }
+    button { font: inherit; cursor: pointer; border: none; background: none; color: inherit; }
+    .container { width: min(1080px, calc(100% - 32px)); margin-inline: auto; }
+    .site-header {
+      position: fixed; inset: 0 0 auto 0; z-index: 100; height: var(--header-h);
+      background: #0f172a; border-bottom: 1px solid var(--line);
+    }
+    .site-header__inner {
+      height: 100%; display: flex; align-items: center; justify-content: space-between; gap: 16px;
+    }
+    .brand { display: flex; align-items: center; gap: 10px; font-weight: 700; }
+    .brand__logo { width: 32px; height: 32px; border-radius: 50%; object-fit: cover; }
+    .brand__text { font-size: 0.95rem; line-height: 1.15; }
+    .brand__text span { display: block; font-size: 11px; font-weight: 500; color: var(--muted); }
+    .nav { display: flex; align-items: center; gap: 4px; }
+    .nav a { padding: 6px 12px; border-radius: 8px; font-size: 13px; color: var(--muted); }
+    .nav a:hover { color: var(--cyan2); background: #164e63; }
+    .header-actions { display: flex; align-items: center; gap: 10px; }
+    .lang-switch {
+      display: inline-flex; padding: 3px; border-radius: 999px; border: 1px solid var(--line2);
+    }
+    .lang-switch__btn { padding: 4px 10px; border-radius: 999px; font-size: 11px; font-weight: 700; color: var(--muted); }
+    .lang-switch__btn--active { background: #164e63; color: var(--cyan); border: 1px solid var(--cyan); }
+    .btn {
+      display: inline-flex; align-items: center; justify-content: center;
+      padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px;
+      background: #1e293b; color: var(--text); border: 1px solid var(--line2);
+    }
+    .btn--primary { background: var(--btn); border-color: var(--cyan); }
+    .btn--lg { padding: 12px 22px; }
+    .menu-toggle {
+      display: none; width: 40px; height: 40px; border-radius: 8px; border: 1px solid var(--line2);
+    }
+    .hero { padding: calc(var(--header-h) + 48px) 0 64px; }
+    .hero__grid { display: grid; grid-template-columns: 1.1fr 0.9fr; gap: 36px; align-items: start; }
+    .hero__eyebrow {
+      display: inline-flex; padding: 4px 12px; border-radius: 999px; margin-bottom: 16px;
+      border: 1px solid var(--cyan); color: var(--cyan); font-size: 12px;
+    }
+    .hero__title {
+      margin: 0 0 14px; font-size: clamp(1.8rem, 4vw, 2.6rem);
+      line-height: 1.12; letter-spacing: -0.03em;
+    }
+    .hero__title em { font-style: normal; color: var(--cyan); }
+    .hero__focus {
+      margin: 0 0 14px; font-size: 0.98rem; font-weight: 600;
+      letter-spacing: 0.02em; color: var(--cyan2);
+    }
+    .hero__lead {
+      margin: 0 0 24px;
+      color: var(--muted);
+      max-width: 36rem;
+      font-size: 1.05rem;
+      line-height: 1.55;
+    }
+    .hero__ctas { display: flex; flex-wrap: wrap; gap: 10px; margin-bottom: 18px; }
+    .hero-card {
+      background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 8px;
+    }
+    .ide {
+      font-family: ui-monospace, monospace; font-size: 12px; color: #cbd5e1;
+    }
+    .ide__bar {
+      display: flex; justify-content: space-between; padding: 8px 10px;
+      border-bottom: 1px solid var(--line); color: #64748b; text-transform: uppercase; letter-spacing: 0.06em; font-size: 11px;
+    }
+    .ide__grid { display: grid; grid-template-columns: 120px 1fr; min-height: 220px; }
+    .ide__ex { padding: 10px; border-right: 1px solid var(--line); color: #94a3b8; }
+    .ide__ex span { display: block; padding: 4px 0; }
+    .ide__ex .is-on { color: var(--cyan2); }
+    .ide__ed { padding: 10px; color: #86efac; white-space: pre-wrap; }
+    .ide__warn { padding: 8px 10px; border-bottom: 1px solid var(--line); color: #facc15; font-size: 11px; }
+    .ide--sm .ide__grid { min-height: 150px; grid-template-columns: 1fr 1fr; }
+    .ide__panel { padding: 10px; color: var(--muted); }
+    .ide__panel .is-on { color: var(--cyan2); }
+    .ide__field {
+      margin-top: 8px; padding: 6px 8px; border-radius: 6px; border: 1px solid var(--line2);
+      color: var(--cyan2); background: #020617;
+    }
+    .section { padding: 56px 0; }
+    .section--alt { background: var(--panel); border-block: 1px solid var(--line); }
+    .section__tag {
+      display: inline-block; margin-bottom: 8px; font-size: 11px; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase; color: var(--cyan);
+    }
+    .section__title { margin: 0 0 10px; font-size: clamp(1.4rem, 3vw, 1.9rem); }
+    .section__lead { margin: 0 0 28px; color: var(--muted); max-width: 40rem; }
+    .section__lead--one-line { max-width: none; white-space: nowrap; }
+    @media (max-width: 900px) {
+      .section__lead--one-line { white-space: normal; }
+    }
+    .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 14px; }
+    .card { padding: 18px 16px; border-radius: 10px; background: var(--bg); border: 1px solid var(--line); }
+    .card .hero-card { margin-top: 12px; }
+    .card h3 { margin: 0 0 8px; font-size: 1rem; }
+    .card p { margin: 0; color: var(--muted); font-size: 0.9rem; }
+    .card .quote, .card .hero-card + p, .card p + p { margin-top: 10px; }
+    .mode-cols {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 14px 18px;
+      margin-top: 10px;
+      align-items: start;
+    }
+    .mode-block {
+      text-align: center;
+    }
+    .mode-flow {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      color: var(--cyan2);
+      font: 13px/1.25 ui-monospace, SFMono-Regular, Menlo, monospace;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    .mode-flow li + li::before {
+      content: "↓";
+      display: block;
+      color: var(--muted);
+      margin: 2px 0;
+      font-size: 12px;
+    }
+    .mode-for {
+      margin: 0 0 6px;
+      font-size: 11px;
+      font-weight: 700;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+    .card--mode ul {
+      margin: 0;
+      padding: 0;
+      list-style: none;
+      color: var(--muted);
+      font-size: 0.9rem;
+      line-height: 1.55;
+    }
+    .card--mode h3 { text-align: center; }
+    @media (max-width: 640px) {
+      .mode-cols { grid-template-columns: 1fr; }
+    }
+    .steps { display: grid; grid-template-columns: repeat(5, 1fr); gap: 12px; }
+    .step { padding: 16px 14px; border-radius: 10px; background: var(--panel); border: 1px solid var(--line); }
+    .step__n {
+      width: 28px; height: 28px; border-radius: 999px; margin-bottom: 10px;
+      display: grid; place-items: center; font-size: 12px; font-weight: 700;
+      border: 1px solid var(--cyan); color: var(--cyan);
+    }
+    .step h3 { margin: 0 0 6px; font-size: 0.95rem; }
+    .step p { margin: 0; color: var(--muted); font-size: 0.84rem; }
+    .cta-band {
+      margin: 24px 0 64px; padding: 32px 24px; border-radius: 12px; text-align: center;
+      background: var(--panel); border: 1px solid var(--line2);
+    }
+    .cta-band h2 { margin: 0 0 8px; }
+    .cta-band p { margin: 0 auto 18px; color: var(--muted); max-width: 480px; }
+    .legend { display: flex; flex-wrap: wrap; gap: 14px; margin: 0 0 18px; font-size: 13px; color: var(--muted); }
+    .legend span { display: inline-flex; align-items: center; gap: 8px; }
+    .dot { width: 9px; height: 9px; border-radius: 50%; display: inline-block; }
+    .dot--on { background: #4ade80; }
+    .dot--mid { background: #facc15; }
+    .dot--off { background: #f87171; }
+    .cap-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+    .cap { width: 100%; min-width: 640px; border-collapse: collapse; }
+    /* ── index de paths ── */
+    .idx-flow {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
+      margin: 32px 0 28px; padding: 20px 24px; border-radius: 12px;
+      background: #020617; border: 1px solid var(--line);
+    }
+    .idx-step {
+      display: flex; flex-direction: column; align-items: center; gap: 6px;
+      padding: 12px 14px; border-radius: 10px; border: 1px solid var(--line2);
+      background: var(--panel); min-width: 100px; text-align: center;
+    }
+    .idx-step--on { border-color: var(--cyan); background: #0c4a6e22; }
+    .idx-step__icon { font-size: 1.6rem; }
+    .idx-step__label { font-size: 12px; color: var(--muted); line-height: 1.3; }
+    .idx-step__label small { font-size: 11px; color: #64748b; }
+    .idx-arrow { font-size: 1.3rem; color: var(--cyan); flex-shrink: 0; }
+    .cap__wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); margin: 0 0 24px; }
+    .cap__table { width: 100%; min-width: 620px; border-collapse: collapse; }
+    .cap__table th, .cap__table td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+    .cap__table th { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .cap__table tr:last-child td { border-bottom: 0; }
+    .cap__table .cap__name { font-weight: 600; white-space: nowrap; }
+    .cap__table .cap__name .dot { margin-right: 8px; vertical-align: 1px; }
+    .cap__table td:last-child { color: var(--muted); font-size: 13px; }
+    .idx-row--source td { color: var(--text) !important; }
+    .idx-row--source .cap__name { color: var(--cyan); }
+    .idx-note {
+      padding: 16px 20px; border-radius: 10px; background: #020617;
+      border: 1px solid var(--line); font-size: 14px; line-height: 1.6;
+    }
+    .idx-note p { margin: 6px 0 0; color: var(--muted); }
+    .idx-note code { background: #1e293b; padding: 1px 5px; border-radius: 4px; font-family: ui-monospace, monospace; font-size: 12px; color: var(--cyan2); }
+    @media (max-width: 640px) {
+      .idx-flow { gap: 6px; padding: 14px 12px; }
+      .idx-step { min-width: 80px; padding: 8px 10px; }
+      .idx-arrow { display: none; }
+    }
+    .cap th, .cap td { text-align: left; padding: 11px 14px; border-bottom: 1px solid var(--line); font-size: 14px; vertical-align: top; }
+    .cap th { font-size: 12px; letter-spacing: 0.04em; text-transform: uppercase; color: var(--muted); font-weight: 600; }
+    .cap tr:last-child td { border-bottom: 0; }
+    .cap .cap__name { font-weight: 600; white-space: nowrap; }
+    .cap .cap__name .dot { margin-right: 8px; vertical-align: 1px; }
+    .cap .cap__st { white-space: nowrap; color: var(--muted); font-size: 13px; }
+    .cap td:last-child { color: var(--muted); }
+    .diagram {
+      margin: 0 0 22px; padding: 16px 18px; border-radius: 10px; background: var(--bg);
+      border: 1px solid var(--line); color: var(--cyan2); font: 13px/1.55 ui-monospace, monospace;
+      white-space: pre; overflow-x: auto;
+    }
+    .tree {
+      margin: 10px 0 0; padding: 12px 14px; border-radius: 8px; background: #020617;
+      border: 1px solid var(--line); color: #cbd5e1; font: 12px/1.5 ui-monospace, monospace;
+      white-space: pre;
+    }
+    .quote {
+      margin: 14px 0 0; padding: 10px 14px; border-left: 3px solid var(--cyan);
+      background: #020617; color: var(--cyan2); font: 13px/1.45 ui-monospace, monospace;
+    }
+    .ctx-tabs {
+      display: none;
+    }
+    .site-footer { padding: 32px 0 24px; border-top: 1px solid var(--line); }
+    .site-footer p { color: var(--muted); font-size: 0.88rem; }
+    @media (max-width: 900px) {
+      .hero__grid, .cards { grid-template-columns: 1fr; }
+      .steps { grid-template-columns: 1fr 1fr; }
+      .nav { display: none; }
+      .nav.is-open {
+        display: flex; flex-direction: column; position: absolute; top: var(--header-h); left: 0; right: 0;
+        background: var(--panel); padding: 12px 16px 20px; border-bottom: 1px solid var(--line);
+      }
+      .menu-toggle { display: grid; place-items: center; }
+      .cap { min-width: 0; }
+      .cap thead { display: none; }
+      .cap, .cap tbody, .cap tr, .cap td { display: block; }
+      .cap tr { padding: 12px 14px; border-bottom: 1px solid var(--line); }
+      .cap td { padding: 4px 0; border: 0; }
+      .cap .cap__name { white-space: normal; }
+      .ctx-tabs {
+        display: flex;
+        gap: 4px;
+        margin: 0 0 12px;
+        padding: 3px;
+        border: 1px solid var(--line2);
+        border-radius: 999px;
+        background: #020617;
+      }
+      .ctx-tabs button {
+        flex: 1;
+        padding: 8px 6px;
+        border-radius: 999px;
+        border: 1px solid transparent;
+        font-size: 11px;
+        font-weight: 700;
+        letter-spacing: 0.02em;
+        color: var(--muted);
+      }
+      .ctx-tabs button.is-on {
+        background: #164e63;
+        color: var(--cyan);
+        border-color: var(--cyan);
+      }
+      .ctx-cards { display: block; }
+      .ctx-cards .card { display: none; }
+      .ctx-cards .card.is-on { display: block; }
+    }
+    @media (max-width: 560px) { .steps { grid-template-columns: 1fr; } }
+  </style>
+</head>
+<body>
+  <header class="site-header" id="siteHeader">
+    <div class="container site-header__inner">
+      <a href="#top" class="brand">
+        <img class="brand__logo" src="assets/logo-p2l.png" alt="P2L" width="32" height="32" />
+        <div class="brand__text">Agent Factory<span data-i18n="brand.sub">Agentic IDE SaaS</span></div>
+      </a>
+      <nav class="nav" id="mainNav">
+        <a href="#que-hace" data-i18n="nav.what">Qué hace</a>
+        <a href="#dinamica" data-i18n="nav.flow">Cómo se usa</a>
+        <a href="#capacidades" data-i18n="nav.caps">Capacidades</a>
+        <a href="#contexto" data-i18n="nav.ctx">Skills · MCP · LSP</a>
+        <a href="#index-paths" data-i18n="nav.idx">Explorer · Index</a>
+      </nav>
+      <div class="header-actions">
+        <div class="lang-switch" role="group">
+          <button type="button" class="lang-switch__btn lang-switch__btn--active" data-lang="es">ES</button>
+          <button type="button" class="lang-switch__btn" data-lang="en">EN</button>
+        </div>
+        <a class="btn btn--primary" href="https://www.refactorii.com/p2l-tenant/login/semantic-ide-async" data-i18n="nav.enter">Entrar al IDE</a>
+        <button class="menu-toggle" id="menuToggle" type="button" aria-label="Menú">☰</button>
+      </div>
+    </div>
+  </header>
+
+  <main id="top">
+    <section class="hero">
+      <div class="container hero__grid">
+        <div>
+          <div class="hero__eyebrow" data-i18n="hero.eyebrow">Agentic IDE SaaS</div>
+          <h1 class="hero__title" data-i18n-html="hero.title">El agente escribe el cambio.<br /><em>Tú lo ves en el IDE.</em></h1>
+          <p class="hero__focus" data-i18n="hero.focus">Human | AI agentic pair programming IDE</p>
+          <p class="hero__lead" data-i18n-html="hero.lead">Abres el editor y defines Skill, LSP y MCP en tu proyecto,<br />pides el cambio. El agente te deja el diff aquí.<br />Nada que instalar.</p>
+          <div class="hero__ctas">
+            <a class="btn btn--primary btn--lg" href="https://www.refactorii.com/p2l-tenant/login/semantic-ide-async" data-i18n="hero.cta">Abrir el IDE</a>
+            <a class="btn btn--lg" href="#dinamica" data-i18n="hero.cta2">Ver cómo se usa</a>
+          </div>
+        </div>
+        <div class="hero-card" aria-hidden="true">
+          <div class="ide">
+            <div class="ide__bar"><span>Explorer</span><span>Human | Agent</span></div>
+            <div class="ide__grid">
+              <div class="ide__ex">
+                <span class="is-on">.refactorii/skills/refactorii.md</span>
+                <span>entity/Order.java</span>
+                <span>pom.xml</span>
+              </div>
+              <div class="ide__ed">+ class OrderDTO {
++   Long id;
++   String sku;
++ }</div>
+            </div>
+            <div class="ide__chat"><strong data-i18n="mock.chat">Tarea</strong> · <span data-i18n="mock.task">Refactoriza este endpoint siguiendo las convenciones de Refactorii</span> · skill on</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="que-hace">
+      <div class="container">
+        <div class="section__tag" data-i18n="what.tag">Para ti</div>
+        <h2 class="section__title" data-i18n="what.title">Traes código, pides un cambio, decides dónde queda</h2>
+        <p class="section__lead" data-i18n="what.lead">Enfoque: Human | AI agentic pair programming IDE. El trabajo ocurre en el editor. El resultado no es un chat: es un diff que puedes aceptar, aplicar o descartar.</p>
+        <div class="cards">
+          <article class="card">
+            <h3 data-i18n="what.1t">Tu proyecto en el editor</h3>
+            <p data-i18n="what.1d">Importa una carpeta o un ZIP. Marca qué archivos son contexto. Editas como en cualquier IDE.</p>
+          </article>
+          <article class="card">
+            <h3 data-i18n="what.2t">El agente te deja un diff</h3>
+            <p data-i18n="what.2d">Escribes la tarea. Cuando termina, ves archivos nuevos o cambiados y el diff en el mismo panel.</p>
+          </article>
+          <article class="card">
+            <h3 data-i18n="what.3t">Tú eliges el destino</h3>
+            <p data-i18n="what.3d">Traerlo al editor, aplicarlo en tu carpeta local o hacer commit a tu repositorio. O descartarlo.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--alt" id="dinamica">
+      <div class="container">
+        <div class="section__tag" data-i18n="use.tag">Cómo se usa</div>
+        <h2 class="section__title" data-i18n="use.title">Cinco pasos, todo en el IDE</h2>
+        <p class="section__lead" data-i18n="use.lead">Misma cuenta Google que el resto de productos P2L.</p>
+        <div class="steps">
+          <article class="step"><div class="step__n">1</div><h3 data-i18n="use.1t">Entra</h3><p data-i18n="use.1d">Login con Google y abres el IDE.</p></article>
+          <article class="step"><div class="step__n">2</div><h3 data-i18n="use.2t">Trae código</h3><p data-i18n="use.2d">Carpeta, ZIP o archivos del explorer.</p></article>
+          <article class="step"><div class="step__n">3</div><h3 data-i18n="use.3t">Pide el cambio</h3><p data-i18n="use.3d">Describe la tarea. Activa Skills o MCP si aplican a este proyecto.</p></article>
+          <article class="step"><div class="step__n">4</div><h3 data-i18n="use.4t">Revisa el diff</h3><p data-i18n="use.4d">El resultado aparece en el IDE, no en otro sitio.</p></article>
+          <article class="step"><div class="step__n">5</div><h3 data-i18n="use.5t">Aplica o sube</h3><p data-i18n="use.5d">Al editor, a tu disco o a tu repo. O descarta.</p></article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="modos">
+      <div class="container">
+        <div class="section__tag" data-i18n="modes.tag">Dos modos</div>
+        <h2 class="section__title" data-i18n="modes.title">Rápido o Fábrica, el mismo IDE</h2>
+        <p class="section__lead" data-i18n="modes.lead">Cambias de modo en el encabezado. El workspace es el mismo.</p>
+        <div class="cards">
+          <article class="card card--mode">
+            <h3 data-i18n="modes.1t">⚡ Rápido (1 archivo)</h3>
+            <div class="mode-cols">
+              <div class="mode-block">
+                <ol class="mode-flow">
+                  <li data-i18n="modes.1s1">Pregunta</li>
+                  <li data-i18n="modes.1s2">Agent</li>
+                  <li data-i18n="modes.1s3">cambio</li>
+                  <li data-i18n="modes.1s4">diff</li>
+                </ol>
+              </div>
+              <div class="mode-block">
+                <p class="mode-for" data-i18n="modes.for">Para:</p>
+                <ul>
+                  <li data-i18n="modes.1u1">crear una clase</li>
+                  <li data-i18n="modes.1u2">corregir un bug</li>
+                  <li data-i18n="modes.1u3">refactorizar</li>
+                  <li data-i18n="modes.1u4">generar tests</li>
+                  <li data-i18n="modes.1u5">modificar un endpoint</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+          <article class="card card--mode">
+            <h3 data-i18n="modes.2t">🏭 Fábrica (n archivos front | Back | BD)</h3>
+            <div class="mode-cols">
+              <div class="mode-block">
+                <ol class="mode-flow">
+                  <li data-i18n="modes.2s1">Task</li>
+                  <li data-i18n="modes.2s2">Planner</li>
+                  <li data-i18n="modes.2s3">Coder</li>
+                  <li data-i18n="modes.2s4">Reviewer</li>
+                  <li data-i18n="modes.2s5">Tests</li>
+                  <li data-i18n="modes.2s6">Diff</li>
+                  <li data-i18n="modes.2s7">PR</li>
+                </ol>
+              </div>
+              <div class="mode-block">
+                <p class="mode-for" data-i18n="modes.for">Para:</p>
+                <ul>
+                  <li data-i18n="modes.2u1">features grandes</li>
+                  <li data-i18n="modes.2u2">migraciones</li>
+                  <li data-i18n="modes.2u3">refactors</li>
+                  <li data-i18n="modes.2u4">proyectos completos</li>
+                  <li data-i18n="modes.2u5">tareas largas</li>
+                </ul>
+              </div>
+            </div>
+          </article>
+          <article class="card">
+            <h3 data-i18n="modes.3t">Siempre tú decides, el agente IA es agnóstico</h3>
+            <p data-i18n="modes.3d">Nada se escribe en tu disco ni en tu repo local ni en un repo remoto. Tú auditas y decides la conveniencia del cambio según tu contexto de trabajo. Descartar simplemente deja el workspace como estaba. El agente es agnóstico, es decir no ejecuta el cambio (git add, PR, commit, merge, etc.) ni de manera local ni remota.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section class="section section--alt" id="capacidades">
+      <div class="container">
+        <div class="section__tag" data-i18n="cap.tag">Agentic IDE SaaS</div>
+        <h2 class="section__title" data-i18n="cap.title">Qué es el IDE?</h2>
+        <p class="section__lead section__lead--one-line" data-i18n="cap.lead">No es un chat genérico: es un editor sobre el código que estás construyendo el cual manipula el agente de inteligencia artificial.</p>
+        <div class="cap-wrap">
+          <table class="cap">
+            <thead>
+              <tr>
+                <th data-i18n="cap.h1">Capacidad</th>
+                <th data-i18n="cap.h2">Estado</th>
+                <th data-i18n="cap.h3">Qué significa para tu código</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td class="cap__name"><i class="dot dot--on"></i> Web IDE</td>
+                <td class="cap__st" data-i18n="cap.on">Listo</td>
+                <td data-i18n="cap.web">Editas el proyecto en el navegador. El agente escribe en el mismo sitio donde tú lees el código.</td>
+              </tr>
+              <tr>
+                <td class="cap__name"><i class="dot dot--on"></i> Explorer</td>
+                <td class="cap__st" data-i18n="cap.on">Listo</td>
+                <td data-i18n="cap.ex">Ves el árbol de archivos. Marcas cuáles viajan con la tarea (Context Pack).</td>
+              </tr>
+              <tr>
+                <td class="cap__name"><i class="dot dot--on"></i> Proyectos</td>
+                <td class="cap__st" data-i18n="cap.on">Listo</td>
+                <td data-i18n="cap.proj">Importas carpeta o ZIP. El trabajo es sobre tu código, no sobre un ejemplo vacío.</td>
+              </tr>
+              <tr>
+                <td class="cap__name"><i class="dot dot--on"></i> Agent</td>
+                <td class="cap__st" data-i18n="cap.on">Listo</td>
+                <td data-i18n="cap.ag">Pides un cambio en lenguaje natural y recibes un diff aplicado a esos archivos.</td>
+              </tr>
+              <tr>
+                <td class="cap__name"><i class="dot dot--on"></i> Ejecución aislada</td>
+                <td class="cap__st" data-i18n="cap.on">Listo</td>
+                <td data-i18n="cap.iso">El agente no corre en tu PC. Tú revisas el resultado en el IDE antes de tocarlo.</td>
+              </tr>
+              <tr>
+                <td class="cap__name"><i class="dot dot--on"></i> Git</td>
+                <td class="cap__st" data-i18n="cap.on">Listo</td>
+                <td data-i18n="cap.git">Cuando aceptas, haces commit a tu repositorio. El token no se queda en el browser.</td>
+              </tr>
+              <tr>
+                <td class="cap__name"><i class="dot dot--on"></i> Diff</td>
+                <td class="cap__st" data-i18n="cap.on">Listo</td>
+                <td data-i18n="cap.pr">El cambio se revisa aquí: archivos tocados y diff. Tú apruebas, aplicas o descartas.</td>
+              </tr>
+              <tr>
+                <td class="cap__name"><i class="dot dot--on"></i> LSP</td>
+                <td class="cap__st" data-i18n="cap.on">Listo</td>
+                <td data-i18n="cap.lsp">Avisos y problemas del archivo abierto: errores, estructura y diagnóstico de este código. El agente trabaja sobre ese mismo árbol, no sobre un paste en el chat.</td>
+              </tr>
+              <tr>
+                <td class="cap__name"><i class="dot dot--on"></i> MCP</td>
+                <td class="cap__st" data-i18n="cap.on">Listo</td>
+                <td data-i18n="cap.mcp">Declaras una conexión para que el agente use herramientas de tu negocio (Postgres, APIs, Jira, docs) como contexto de este código.</td>
+              </tr>
+              <tr>
+                <td class="cap__name"><i class="dot dot--on"></i> Skills</td>
+                <td class="cap__st" data-i18n="cap.on">Listo</td>
+                <td data-i18n="cap.sk">Archivos de convención en tu workspace (.refactorii/skills/). Las activas y el agente las aplica al refactor: Spring, Vue, Postgres, testing, Refactorii.</td>
+              </tr>
+              <tr>
+                <td class="cap__name"><i class="dot dot--on"></i> Multi-agent</td>
+                <td class="cap__st" data-i18n="cap.on">Listo</td>
+                <td data-i18n="cap.ma">Orquestación Planner → Coder → Reviewer sobre tu tarea: planifica, escribe el cambio en tu código y lo revisa antes de dejarte el diff.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <section class="section" id="contexto">
+      <div class="container">
+        <div class="section__tag" data-i18n="ctx.tag">Contexto del agente</div>
+        <h2 class="section__title" data-i18n-html="ctx.title">Skills, MCP y LSP se aplican a <em>tu</em> código</h2>
+        <p class="section__lead" data-i18n="ctx.lead">No es un chat con un recorte de código. En el Explorer defines el Skill, en el editor ves el LSP, en el panel conectas el MCP. El agente usa eso en la tarea local.</p>
+        <div class="ctx-tabs" role="tablist" aria-label="Skill, LSP y MCP">
+          <button type="button" role="tab" class="is-on" data-ctx-tab="skill" aria-selected="true" data-i18n="ctx.tab_sk">Explorer</button>
+          <button type="button" role="tab" data-ctx-tab="lsp" aria-selected="false" data-i18n="ctx.tab_lsp">Editor</button>
+          <button type="button" role="tab" data-ctx-tab="mcp" aria-selected="false" data-i18n="ctx.tab_mcp">Panel agente</button>
+        </div>
+        <div class="cards ctx-cards">
+          <article class="card is-on" data-ctx-panel="skill">
+            <h3 data-i18n="ctx.skt">Skill</h3>
+            <p data-i18n="ctx.skd">La convención de este proyecto. La defines en el Explorer, como un archivo más.</p>
+            <div class="hero-card" aria-hidden="true">
+              <div class="ide ide--sm">
+                <div class="ide__bar"><span>Explorer</span><span>Skill</span></div>
+                <div class="ide__grid">
+                  <div class="ide__ex">
+                    <span class="is-on">.refactorii/skills/refactorii.md</span>
+                    <span>spring-boot.md</span>
+                    <span>vue.md</span>
+                  </div>
+                  <div class="ide__ed"># Skill: refactorii
+Sigue las capas y
+nombres de este
+proyecto.</div>
+                </div>
+                <div class="ide__chat"><strong data-i18n="ctx.skhow">1. Abre</strong> · 2. Activa · 3. Pide la tarea</div>
+              </div>
+            </div>
+            <p class="quote" data-i18n="ctx.skq">«Refactoriza este endpoint siguiendo las convenciones de Refactorii.»</p>
+            <p data-i18n="ctx.skd2">El agente escribe el cambio como si ya conociera tu plataforma. El chat solo lanza la tarea; el Skill vive en el proyecto.</p>
+          </article>
+          <article class="card" data-ctx-panel="lsp">
+            <h3 data-i18n="ctx.lspt">LSP</h3>
+            <p data-i18n="ctx.lspd">Inteligencia del archivo abierto. Se aplica en el editor, no en el chat.</p>
+            <div class="hero-card" aria-hidden="true">
+              <div class="ide ide--sm">
+                <div class="ide__bar"><span>Editor</span><span>LSP</span></div>
+                <div class="ide__warn" data-i18n="ctx.lspw">warning · falta el DTO de Order</div>
+                <div class="ide__grid">
+                  <div class="ide__ex">
+                    <span>skills/refactorii.md</span>
+                    <span class="is-on">entity/Order.java</span>
+                    <span>pom.xml</span>
+                  </div>
+                  <div class="ide__ed">class Order {
+  Long id;
+}</div>
+                </div>
+              </div>
+            </div>
+            <p data-i18n="ctx.lspd2">Abres el archivo del Explorer. Los avisos salen encima. El agente trabaja sobre ese mismo árbol.</p>
+          </article>
+          <article class="card" data-ctx-panel="mcp">
+            <h3 data-i18n="ctx.mcpt">MCP</h3>
+            <p data-i18n="ctx.mcpd">Herramientas de tu negocio atadas a esta tarea: Postgres, APIs, docs.</p>
+            <div class="hero-card" aria-hidden="true">
+              <div class="ide ide--sm">
+                <div class="ide__bar"><span>Panel agente</span><span>MCP</span></div>
+                <div class="ide__panel">
+                  <div data-i18n="ctx.mcpf">MCP de este proyecto</div>
+                  <div class="ide__field">postgres · apis · docs</div>
+                  <p data-i18n="ctx.mcphow">Lo pegas aquí. El agente lo usa al escribir el cambio en los archivos del Explorer.</p>
+                </div>
+              </div>
+            </div>
+            <p data-i18n-html="ctx.mcpd2">No es un chat genérico: la tarea habla de <em>este</em> código y de <em>tus</em> datos.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <!-- ── Sección: Explorer · index.txt manifiesto ── -->
+    <section class="section" id="index-paths">
+      <div class="container">
+        <div class="section__tag" data-i18n="idx.tag">Explorer · Manifiesto de contexto</div>
+        <h2 class="section__title" data-i18n-html="idx.title">Carpeta / ZIP + <em>index.txt</em> = contexto exacto para el agente</h2>
+        <p class="section__lead" data-i18n="idx.lead">No necesitas instalar nada. Es un SaaS 100% en el browser. Importas tu código, declaras qué archivos son front, back y db, y el agente trabaja sobre tu proyecto real, no sobre un ejemplo vacío.</p>
+
+        <!-- Flujo visual -->
+        <div class="idx-flow">
+          <div class="idx-step">
+            <div class="idx-step__icon">📁</div>
+            <div class="idx-step__label" data-i18n="idx.s1">Carpeta o ZIP<br /><small>front/ · back/ · db/</small></div>
+          </div>
+          <div class="idx-arrow">→</div>
+          <div class="idx-step">
+            <div class="idx-step__icon">📋</div>
+            <div class="idx-step__label" data-i18n="idx.s2">index.txt<br /><small>manifiesto [front][back][db]</small></div>
+          </div>
+          <div class="idx-arrow">→</div>
+          <div class="idx-step">
+            <div class="idx-step__icon">📂</div>
+            <div class="idx-step__label" data-i18n="idx.s3">Explorer<br /><small>árbol de archivos</small></div>
+          </div>
+          <div class="idx-arrow">→</div>
+          <div class="idx-step">
+            <div class="idx-step__icon">🗂️</div>
+            <div class="idx-step__label" data-i18n="idx.s4">Context Pack<br /><small>marcado automático</small></div>
+          </div>
+          <div class="idx-arrow">→</div>
+          <div class="idx-step idx-step--on">
+            <div class="idx-step__icon">🤖</div>
+            <div class="idx-step__label" data-i18n="idx.s5">Agente<br /><small>Skill · LSP · MCP</small></div>
+          </div>
+        </div>
+
+      </div>
+    </section>
+
+    <div class="container">
+      <div class="cta-band">
+        <h2 data-i18n="cta.title">Ábrelo y prueba una tarea</h2>
+        <p data-i18n="cta.text">Entra con Google, importa tu código y pide el cambio con un skill. El diff llega al mismo editor.</p>
+        <a class="btn btn--primary btn--lg" href="https://www.refactorii.com/p2l-tenant/login/semantic-ide-async" data-i18n="cta.btn">Entrar al IDE</a>
+      </div>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <div class="container">
+      <a href="#top" class="brand">
+        <img class="brand__logo" src="assets/logo-p2l.png" alt="P2L" width="32" height="32" />
+        <div class="brand__text">Agent Factory<span>Agentic IDE SaaS</span></div>
+      </a>
+      <p data-i18n="footer.blurb">Human | AI agentic pair programming IDE. Tú traes el código, aplicas Skills, MCP y LSP al proyecto, y eliges dónde queda el cambio.</p>
+    </div>
+  </footer>
+
+  <script>
+    const I18N = {
+      es: {
+        'brand.sub': 'Agentic IDE SaaS',
+        'nav.what': 'Qué hace', 'nav.flow': 'Cómo se usa', 'nav.caps': 'Capacidades', 'nav.ctx': 'Skills · MCP · LSP', 'nav.idx': 'Explorer · Index', 'nav.enter': 'Entrar al IDE',
+        'hero.eyebrow': 'Agentic IDE SaaS',
+        'hero.title': 'El agente escribe el cambio.<br /><em>Tú lo ves en el IDE.</em>',
+        'hero.focus': 'Human | AI agentic pair programming IDE',
+        'hero.lead': 'Abres el editor y defines Skill, LSP y MCP en tu proyecto,<br />pides el cambio. El agente te deja el diff aquí.<br />Nada que instalar.',
+        'hero.cta': 'Abrir el IDE', 'hero.cta2': 'Ver cómo se usa',
+        'mock.chat': 'Tarea', 'mock.task': 'Refactoriza este endpoint siguiendo las convenciones de Refactorii',
+        'what.tag': 'Para ti', 'what.title': 'Traes código, pides un cambio, decides dónde queda',
+        'what.lead': 'Enfoque: Human | AI agentic pair programming IDE. El trabajo ocurre en el editor. El resultado no es un chat: es un diff que puedes aceptar, aplicar o descartar.',
+        'what.1t': 'Tu proyecto en el editor', 'what.1d': 'Importa una carpeta o un ZIP. Marca qué archivos son contexto. Editas como en cualquier IDE.',
+        'what.2t': 'El agente te deja un diff', 'what.2d': 'Escribes la tarea. Cuando termina, ves archivos nuevos o cambiados y el diff en el mismo panel.',
+        'what.3t': 'Tú eliges el destino', 'what.3d': 'Traerlo al editor, aplicarlo en tu carpeta local o hacer commit a tu repositorio. O descartarlo.',
+        'use.tag': 'Cómo se usa', 'use.title': 'Cinco pasos, todo en el IDE',
+        'use.lead': 'Misma cuenta Google que el resto de productos P2L.',
+        'use.1t': 'Entra', 'use.1d': 'Login con Google y abres el IDE.',
+        'use.2t': 'Trae código', 'use.2d': 'Carpeta, ZIP o archivos del explorer.',
+        'use.3t': 'Pide el cambio', 'use.3d': 'Describe la tarea. Activa Skills o MCP si aplican a este proyecto.',
+        'use.4t': 'Revisa el diff', 'use.4d': 'El resultado aparece en el IDE, no en otro sitio.',
+        'use.5t': 'Aplica o sube', 'use.5d': 'Al editor, a tu disco o a tu repo. O descarta.',
+        'modes.tag': 'Dos modos', 'modes.title': 'Rápido o Fábrica, el mismo IDE',
+        'modes.lead': 'Cambias de modo en el encabezado. El workspace es el mismo.',
+        'modes.1t': '⚡ Rápido (1 archivo)',
+        'modes.1s1': 'Pregunta', 'modes.1s2': 'Agent', 'modes.1s3': 'cambio', 'modes.1s4': 'diff',
+        'modes.1u1': 'crear una clase', 'modes.1u2': 'corregir un bug', 'modes.1u3': 'refactorizar', 'modes.1u4': 'generar tests', 'modes.1u5': 'modificar un endpoint',
+        'modes.2t': '🏭 Fábrica (n archivos front | Back | BD)',
+        'modes.2s1': 'Task', 'modes.2s2': 'Planner', 'modes.2s3': 'Coder', 'modes.2s4': 'Reviewer', 'modes.2s5': 'Tests', 'modes.2s6': 'Diff', 'modes.2s7': 'PR',
+        'modes.2u1': 'features grandes', 'modes.2u2': 'migraciones', 'modes.2u3': 'refactors', 'modes.2u4': 'proyectos completos', 'modes.2u5': 'tareas largas',
+        'modes.for': 'Para:',
+        'modes.3t': 'Siempre tú decides, el agente IA es agnóstico',
+        'modes.3d': 'Nada se escribe en tu disco ni en tu repo local ni en un repo remoto. Tú auditas y decides la conveniencia del cambio según tu contexto de trabajo. Descartar simplemente deja el workspace como estaba. El agente es agnóstico, es decir no ejecuta el cambio (git add, PR, commit, merge, etc.) ni de manera local ni remota.',
+        'cap.tag': 'Agentic IDE SaaS', 'cap.title': 'Qué es el IDE?',
+        'cap.lead': 'No es un chat genérico: es un editor sobre el código que estás construyendo el cual manipula el agente de inteligencia artificial.',
+        'cap.h1': 'Capacidad', 'cap.h2': 'Estado', 'cap.h3': 'Qué significa para tu código',
+        'cap.on': 'Listo',
+        'cap.web': 'Editas el proyecto en el navegador. El agente escribe en el mismo sitio donde tú lees el código.',
+        'cap.ex': 'Ves el árbol de archivos. Marcas cuáles viajan con la tarea (Context Pack).',
+        'cap.proj': 'Importas carpeta o ZIP. El trabajo es sobre tu código, no sobre un ejemplo vacío.',
+        'cap.ag': 'Pides un cambio en lenguaje natural y recibes un diff aplicado a esos archivos.',
+        'cap.iso': 'El agente no corre en tu PC. Tú revisas el resultado en el IDE antes de tocarlo.',
+        'cap.git': 'Cuando aceptas, haces commit a tu repositorio. El token no se queda en el browser.',
+        'cap.pr': 'El cambio se revisa aquí: archivos tocados y diff. Tú apruebas, aplicas o descartas.',
+        'cap.lsp': 'Avisos y problemas del archivo abierto: errores, estructura y diagnóstico de este código. El agente trabaja sobre ese mismo árbol, no sobre un paste en el chat.',
+        'cap.mcp': 'Declaras una conexión para que el agente use herramientas de tu negocio (Postgres, APIs, Jira, docs) como contexto de este código.',
+        'cap.sk': 'Archivos de convención en tu workspace (.refactorii/skills/). Las activas y el agente las aplica al refactor: Spring, Vue, Postgres, testing, Refactorii.',
+        'cap.ma': 'Orquestación Planner → Coder → Reviewer sobre tu tarea: planifica, escribe el cambio en tu código y lo revisa antes de dejarte el diff.',
+        'ctx.tag': 'Contexto del agente',
+        'ctx.title': 'Skills, MCP y LSP se aplican a <em>tu</em> código',
+        'ctx.lead': 'No es un chat con un recorte de código. En el Explorer defines el Skill, en el editor ves el LSP, en el panel conectas el MCP. El agente usa eso en la tarea local.',
+        'ctx.tab_sk': 'Explorer',
+        'ctx.tab_lsp': 'Editor',
+        'ctx.tab_mcp': 'Panel agente',
+        'ctx.skt': 'Skill',
+        'ctx.skd': 'La convención de este proyecto. La defines en el Explorer, como un archivo más.',
+        'ctx.skhow': '1. Abre',
+        'ctx.skq': '«Refactoriza este endpoint siguiendo las convenciones de Refactorii.»',
+        'ctx.skd2': 'El agente escribe el cambio como si ya conociera tu plataforma. El chat solo lanza la tarea; el Skill vive en el proyecto.',
+        'ctx.mcpt': 'MCP',
+        'ctx.mcpd': 'Herramientas de tu negocio atadas a esta tarea: Postgres, APIs, docs.',
+        'ctx.mcpf': 'MCP de este proyecto',
+        'ctx.mcphow': 'Lo pegas aquí. El agente lo usa al escribir el cambio en los archivos del Explorer.',
+        'ctx.mcpd2': 'No es un chat genérico: la tarea habla de <em>este</em> código y de <em>tus</em> datos.',
+        'ctx.lspt': 'LSP',
+        'ctx.lspd': 'Inteligencia del archivo abierto. Se aplica en el editor, no en el chat.',
+        'ctx.lspw': 'warning · falta el DTO de Order',
+        'ctx.lspd2': 'Abres el archivo del Explorer. Los avisos salen encima. El agente trabaja sobre ese mismo árbol.',
+        'idx.tag': 'Explorer · Manifiesto de contexto',
+        'idx.title': 'Carpeta / ZIP + <em>index.txt</em> = contexto exacto para el agente',
+        'idx.lead': 'No necesitas instalar nada. Es un SaaS 100% en el browser. Importas tu código, declaras qué archivos son front, back y db, y el agente trabaja sobre tu proyecto real, no sobre un ejemplo vacío.',
+        'idx.s1': 'Carpeta o ZIP',
+        'idx.s2': 'index.txt',
+        'idx.s3': 'Explorer',
+        'idx.s4': 'Context Pack',
+        'idx.s5': 'Agente',
+        'idx.th1': 'Capa',
+        'idx.th2': 'Qué hace',
+        'idx.th3': 'Cómo se activa',
+        'idx.r1d': 'Trae tu código real al workspace del IDE. Sin esto no hay nada. Importas carpeta o ZIP directamente en el browser.',
+        'idx.r1how': 'Botón «Carpeta» o «ZIP» en el Explorer',
+        'idx.r0d': 'Declara qué archivos del Explorer son front, back o db. El IDE los marca automáticamente en el Context Pack.',
+        'idx.r0how': 'Botón «Manifiesto index.txt» — después de importar la carpeta',
+        'idx.r2d': 'Los archivos marcados que viajan al agente en la tarea. El manifiesto los selecciona por ti.',
+        'idx.r2how': 'Automático con el manifiesto, o manual con los checkboxes',
+        'idx.r3d': 'Convenciones de cómo escribir código en este proyecto (sobre los archivos ya cargados).',
+        'idx.r3how': 'Explorer → .refactorii/skills/ → actívalo en el panel',
+        'idx.r4d': 'Avisos y errores del archivo abierto en el editor. El agente trabaja sobre ese mismo árbol.',
+        'idx.r4how': 'Automático al abrir un archivo del Explorer',
+        'idx.r5d': 'Herramientas externas (Postgres, APIs, Jira, docs) que el agente usa al escribir el cambio.',
+        'idx.r5how': 'Campo de conexión MCP en el panel del agente',
+        'idx.note_t': '☁️ 100% SaaS — nada que instalar',
+        'idx.note_d': 'Todo corre en el browser. Importas la carpeta con tu código (o un ZIP), subes el index.txt para que el IDE sepa qué es front, back y db, y el agente trabaja sobre eso. Sin Node.js local, sin extensiones, sin configuración de entorno.',
+        'cta.title': 'Ábrelo y prueba una tarea',
+        'cta.text': 'Entra con Google, importa tu código y pide el cambio con un skill. El diff llega al mismo editor.',
+        'cta.btn': 'Entrar al IDE',
+        'footer.blurb': 'Human | AI agentic pair programming IDE. Tú traes el código, aplicas Skills, MCP y LSP al proyecto, y eliges dónde queda el cambio.'
+      },
+      en: {
+        'brand.sub': 'Agentic IDE SaaS',
+        'nav.what': 'What it does', 'nav.flow': 'How to use it', 'nav.caps': 'Capabilities', 'nav.ctx': 'Skills · MCP · LSP', 'nav.idx': 'Explorer · Index', 'nav.enter': 'Open the IDE',
+        'hero.eyebrow': 'Agentic IDE SaaS',
+        'hero.title': 'The agent writes the change.<br /><em>You see it in the IDE.</em>',
+        'hero.focus': 'Human | AI agentic pair programming IDE',
+        'hero.lead': 'Open the editor and define Skill, LSP and MCP on your project,<br />ask for the change. The agent leaves the diff here.<br />Nothing to install.',
+        'hero.cta': 'Open the IDE', 'hero.cta2': 'See how it works',
+        'mock.chat': 'Task', 'mock.task': 'Refactor this endpoint following Refactorii conventions',
+        'what.tag': 'For you', 'what.title': 'Bring code, ask for a change, choose where it lands',
+        'what.lead': 'Approach: Human | AI agentic pair programming IDE. The work happens in the editor. The output is not a chat: it is a diff you can accept, apply, or discard.',
+        'what.1t': 'Your project in the editor', 'what.1d': 'Import a folder or a ZIP. Mark which files are context. Edit like any IDE.',
+        'what.2t': 'The agent leaves a diff', 'what.2d': 'Write the task. When it finishes, you see new or changed files and the diff in the same panel.',
+        'what.3t': 'You choose the destination', 'what.3d': 'Bring it into the editor, apply it to your local folder, or commit to your repo. Or discard it.',
+        'use.tag': 'How to use it', 'use.title': 'Five steps, all in the IDE',
+        'use.lead': 'Same Google account as the other P2L products.',
+        'use.1t': 'Sign in', 'use.1d': 'Google login and you open the IDE.',
+        'use.2t': 'Bring code', 'use.2d': 'Folder, ZIP, or explorer files.',
+        'use.3t': 'Ask for the change', 'use.3d': 'Describe the task. Turn on Skills or MCP if they apply to this project.',
+        'use.4t': 'Review the diff', 'use.4d': 'The result shows up in the IDE, not somewhere else.',
+        'use.5t': 'Apply or push', 'use.5d': 'To the editor, your disk, or your repo. Or discard.',
+        'modes.tag': 'Two modes', 'modes.title': 'Fast or Factory, same IDE',
+        'modes.lead': 'Switch modes in the header. The workspace stays the same.',
+        'modes.1t': '⚡ Fast (1 file)',
+        'modes.1s1': 'Question', 'modes.1s2': 'Agent', 'modes.1s3': 'change', 'modes.1s4': 'diff',
+        'modes.1u1': 'create a class', 'modes.1u2': 'fix a bug', 'modes.1u3': 'refactor', 'modes.1u4': 'generate tests', 'modes.1u5': 'change an endpoint',
+        'modes.2t': '🏭 Factory (n files front | Back | DB)',
+        'modes.2s1': 'Task', 'modes.2s2': 'Planner', 'modes.2s3': 'Coder', 'modes.2s4': 'Reviewer', 'modes.2s5': 'Tests', 'modes.2s6': 'Diff', 'modes.2s7': 'PR',
+        'modes.2u1': 'large features', 'modes.2u2': 'migrations', 'modes.2u3': 'refactors', 'modes.2u4': 'full projects', 'modes.2u5': 'long tasks',
+        'modes.for': 'For:',
+        'modes.3t': 'You always decide — the AI agent is agnostic',
+        'modes.3d': 'Nothing is written to your disk, local repo, or a remote repo. You audit and decide whether the change fits your work context. Discard simply leaves the workspace as it was. The agent is agnostic: it does not execute the change (git add, PR, commit, merge, etc.) locally or remotely.',
+        'cap.tag': 'Agentic IDE SaaS', 'cap.title': 'What is the IDE?',
+        'cap.lead': 'This is not a generic chat: it is an editor on the code you are building, which the artificial intelligence agent manipulates.',
+        'cap.h1': 'Capability', 'cap.h2': 'Status', 'cap.h3': 'What it means for your code',
+        'cap.on': 'Ready',
+        'cap.web': 'You edit the project in the browser. The agent writes in the same place you read the code.',
+        'cap.ex': 'You see the file tree. You mark which files travel with the task (Context Pack).',
+        'cap.proj': 'Import a folder or ZIP. The work is on your code, not an empty sample.',
+        'cap.ag': 'Ask for a change in natural language and get a diff applied to those files.',
+        'cap.iso': 'The agent does not run on your PC. You review the result in the IDE before it touches anything.',
+        'cap.git': 'When you accept, you commit to your own repo. The token does not stay in the browser.',
+        'cap.pr': 'The change is reviewed here: touched files and the diff. You approve, apply, or discard.',
+        'cap.lsp': 'Warnings and problems on the open file: errors, structure, and diagnostics of this code. The agent works on that same tree, not a paste in chat.',
+        'cap.mcp': 'You declare a connection so the agent can use your business tools (Postgres, APIs, Jira, docs) as context for this code.',
+        'cap.sk': 'Convention files in your workspace (.refactorii/skills/). You turn them on and the agent applies them to the refactor: Spring, Vue, Postgres, testing, Refactorii.',
+        'cap.ma': 'Planner → Coder → Reviewer on your task: it plans, writes the change in your code, and reviews it before leaving you the diff.',
+        'ctx.tag': 'Agent context',
+        'ctx.title': 'Skills, MCP and LSP apply to <em>your</em> code',
+        'ctx.lead': 'This is not a chat with a code snippet. In Explorer you define the Skill, in the editor you see LSP, in the panel you connect MCP. The agent uses that on the local task.',
+        'ctx.tab_sk': 'Explorer',
+        'ctx.tab_lsp': 'Editor',
+        'ctx.tab_mcp': 'Agent panel',
+        'ctx.skt': 'Skill',
+        'ctx.skd': 'This project’s convention. You define it in Explorer, like any other file.',
+        'ctx.skhow': '1. Open',
+        'ctx.skq': '“Refactor this endpoint following Refactorii conventions.”',
+        'ctx.skd2': 'The agent writes the change as if it already knew your platform. Chat only launches the task; the Skill lives in the project.',
+        'ctx.mcpt': 'MCP',
+        'ctx.mcpd': 'Your business tools tied to this task: Postgres, APIs, docs.',
+        'ctx.mcpf': 'MCP for this project',
+        'ctx.mcphow': 'Paste it here. The agent uses it when writing the change on Explorer files.',
+        'ctx.mcpd2': 'Not a generic chat: the task is about <em>this</em> code and <em>your</em> data.',
+        'ctx.lspt': 'LSP',
+        'ctx.lspd': 'Intelligence of the open file. It applies in the editor, not in chat.',
+        'ctx.lspw': 'warning · Order DTO is missing',
+        'ctx.lspd2': 'Open the file in Explorer. Warnings show above. The agent works on that same tree.',
+        'idx.tag': 'Explorer · Context Manifest',
+        'idx.title': 'Folder / ZIP + <em>index.txt</em> = exact context for the agent',
+        'idx.lead': 'Nothing to install. It is a 100% browser SaaS. You import your code, declare which files are front, back and db, and the agent works on your real project, not an empty sample.',
+        'idx.s1': 'Folder or ZIP',
+        'idx.s2': 'index.txt',
+        'idx.s3': 'Explorer',
+        'idx.s4': 'Context Pack',
+        'idx.s5': 'Agent',
+        'idx.th1': 'Layer',
+        'idx.th2': 'What it does',
+        'idx.th3': 'How to activate',
+        'idx.r1d': 'Brings your real code into the IDE workspace. Without this there is nothing. Import a folder or ZIP directly in the browser.',
+        'idx.r1how': '«Folder» or «ZIP» button in the Explorer',
+        'idx.r0d': 'Declares which Explorer files are front, back or db. The IDE marks them automatically in the Context Pack.',
+        'idx.r0how': '«Manifest index.txt» button — after importing the folder',
+        'idx.r2d': 'The marked files that travel to the agent for the task. The manifest selects them for you.',
+        'idx.r2how': 'Automatic with the manifest, or manual with the checkboxes',
+        'idx.r3d': 'Conventions for how to write code in this project (applied to already-loaded files).',
+        'idx.r3how': 'Explorer → .refactorii/skills/ → activate in the panel',
+        'idx.r4d': 'Warnings and errors on the open file in the editor. The agent works on that same tree.',
+        'idx.r4how': 'Automatic when you open an Explorer file',
+        'idx.r5d': 'External tools (Postgres, APIs, Jira, docs) the agent uses when writing the change.',
+        'idx.r5how': 'MCP connection field in the agent panel',
+        'idx.note_t': '☁️ 100% SaaS — nothing to install',
+        'idx.note_d': 'Everything runs in the browser. Import your folder (or ZIP), upload index.txt so the IDE knows what is front, back and db, and the agent works on that. No local Node.js, no extensions, no environment setup.',
+        'cta.title': 'Open it and try a task',
+        'cta.text': 'Sign in with Google, import your code, and ask for a change with a skill. The diff lands in the same editor.',
+        'cta.btn': 'Open the IDE',
+        'footer.blurb': 'Human | AI agentic pair programming IDE. You bring the code, apply Skills, MCP and LSP to the project, and choose where the change lands.'
+      }
+    };
+    function applyLang(lang) {
+      const dict = I18N[lang] || I18N.es;
+      document.documentElement.lang = lang;
+      document.querySelectorAll('[data-i18n]').forEach((el) => {
+        const k = el.getAttribute('data-i18n');
+        if (dict[k]) el.textContent = dict[k];
+      });
+      document.querySelectorAll('[data-i18n-html]').forEach((el) => {
+        const k = el.getAttribute('data-i18n-html');
+        if (dict[k]) el.innerHTML = dict[k];
+      });
+      document.querySelectorAll('[data-lang]').forEach((btn) => {
+        btn.classList.toggle('lang-switch__btn--active', btn.getAttribute('data-lang') === lang);
+      });
+      document.title = lang === 'en' ? 'Agent Factory — Agentic IDE SaaS' : 'Agent Factory — Agentic IDE SaaS';
+    }
+    document.querySelectorAll('[data-lang]').forEach((btn) => {
+      btn.addEventListener('click', () => applyLang(btn.getAttribute('data-lang')));
+    });
+    function setCtxTab(id) {
+      document.querySelectorAll('[data-ctx-tab]').forEach((btn) => {
+        const on = btn.getAttribute('data-ctx-tab') === id;
+        btn.classList.toggle('is-on', on);
+        btn.setAttribute('aria-selected', on ? 'true' : 'false');
+      });
+      document.querySelectorAll('[data-ctx-panel]').forEach((panel) => {
+        panel.classList.toggle('is-on', panel.getAttribute('data-ctx-panel') === id);
+      });
+    }
+    document.querySelectorAll('[data-ctx-tab]').forEach((btn) => {
+      btn.addEventListener('click', () => setCtxTab(btn.getAttribute('data-ctx-tab')));
+    });
+    const toggle = document.getElementById('menuToggle');
+    const nav = document.getElementById('mainNav');
+    toggle.addEventListener('click', () => nav.classList.toggle('is-open'));
+  </script>
+</body>
+</html>
